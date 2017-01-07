@@ -1,6 +1,6 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-class Item extends MY_Controller {
+class Item extends CI_Controller {
 
 	/**
 	 * Index Page for this controller.
@@ -17,6 +17,14 @@ class Item extends MY_Controller {
 	 * map to /index.php/welcome/<method_name>
 	 * @see http://codeigniter.com/user_guide/general/urls.html
 	 */
+	 public function __construct() {
+		 parent::__construct();
+
+		 if(!$this->app_auth->isLogged() ) {
+			redirect('auth');
+		 }
+	 }
+
 	public function index()
  	{
 		$this->load->model('mitems');

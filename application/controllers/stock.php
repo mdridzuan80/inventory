@@ -1,6 +1,6 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
-class stock extends MY_Controller {
+class stock extends CI_Controller {
 
 	/**
 	 * Index Page for this controller.
@@ -17,6 +17,15 @@ class stock extends MY_Controller {
 	 * map to /index.php/welcome/<method_name>
 	 * @see http://codeigniter.com/user_guide/general/urls.html
 	 */
+	 public function __construct() {
+		 parent::__construct();
+
+		 if(!$this->app_auth->isLogged() ) {
+			redirect('auth');
+		 }
+		 //dd($this->app_acl->has_permission(get_class($this)));
+	 }
+
 	public function index()
  	{
 		$this->load->model('mjournal');
@@ -27,58 +36,64 @@ class stock extends MY_Controller {
 
 	public function daftar()
 	{
-		if($this->input->post('btn-daftar'))
-		{
-			if($this->input->post('transaksi_id') != 3)
+		if($this->app_acl->has_permission(get_class($this))) {
+			if($this->input->post('btn-daftar'))
 			{
-				$field['item_id'] = $this->input->post('item_id');
-				$field['dept_id'] = $this->input->post('dept_id');
-				$field['batch'] = $this->input->post('batch');
-				$field['transaction_id'] = $this->input->post('transaksi_id');
-				$field['total'] = $this->input->post('total');
-				$field['tarikh'] = date('Y-m-d H:m:s');
-				$field['catatan'] = $this->input->post('catatan');
-				$this->load->model('mjournal');
-				$this->mjournal->insert($field);
+				if($this->input->post('transaksi_id') != 3)
+				{
+					$field['item_id'] = $this->input->post('item_id');
+					$field['dept_id'] = $this->input->post('dept_id');
+					$field['batch'] = $this->input->post('batch');
+					$field['transaction_id'] = $this->input->post('transaksi_id');
+					$field['total'] = $this->input->post('total');
+					$field['tarikh'] = date('Y-m-d H:m:s');
+					$field['catatan'] = $this->input->post('catatan');
+					$this->load->model('mjournal');
+					$this->mjournal->insert($field);
+				}
+				else
+				{
+					$date_transfer = date('Y-m-d H:m:s');
+					$from = $this->session->userdata('dept_id');
+					$to = $this->input->post('dept_id');
+					$this->load->model('mjournal');
+					$src['item_id'] = $this->input->post('item_id');
+					$src['dept_id'] = $this->session->userdata('dept_id');
+					$src['batch'] = $this->input->post('batch');
+					$src['transaction_id'] = 2;
+					$src['total'] = $this->input->post('total');
+					$src['tarikh'] = $date_transfer;
+					$src['catatan'] = $this->input->post('catatan');
+					$src['fromto'] = $to;
+					$this->mjournal->insert($src);
+
+					$dst['item_id'] = $this->input->post('item_id');
+					$dst['dept_id'] = $this->input->post('dept_id');
+					$dst['batch'] = $this->input->post('batch');
+					$dst['transaction_id'] = 1;
+					$dst['total'] = $this->input->post('total');
+					$dst['tarikh'] = $date_transfer;
+					$dst['catatan'] = $this->input->post('catatan');
+					$dst['fromto'] = $from;
+					$this->mjournal->insert($dst);
+				}
+				redirect('stock');
 			}
 			else
 			{
-				$date_transfer = date('Y-m-d H:m:s');
-				$from = $this->session->userdata('dept_id');
-				$to = $this->input->post('dept_id');
-				$this->load->model('mjournal');
-				$src['item_id'] = $this->input->post('item_id');
-				$src['dept_id'] = $this->session->userdata('dept_id');
-				$src['batch'] = $this->input->post('batch');
-				$src['transaction_id'] = 2;
-				$src['total'] = $this->input->post('total');
-				$src['tarikh'] = $date_transfer;
-				$src['catatan'] = $this->input->post('catatan');
-				$src['fromto'] = $to;
-				$this->mjournal->insert($src);
-
-				$dst['item_id'] = $this->input->post('item_id');
-				$dst['dept_id'] = $this->input->post('dept_id');
-				$dst['batch'] = $this->input->post('batch');
-				$dst['transaction_id'] = 1;
-				$dst['total'] = $this->input->post('total');
-				$dst['tarikh'] = $date_transfer;
-				$dst['catatan'] = $this->input->post('catatan');
-				$dst['fromto'] = $from;
-				$this->mjournal->insert($dst);
+				$this->load->model('mitems');
+				$this->load->model('mtrans');
+				$this->load->model('mdepts');
+				$content['items'] = $this->mitems->get_all();
+				$content['trans'] = $this->mtrans->get_all();
+				$content['depts'] = $this->mdepts->get_all();
+				$data['content'] = $this->load->view('stock/v_daftar',$content,TRUE);
+		 		$this->load->view('tpl/v_master',$data);
 			}
-			redirect('stock');
 		}
-		else
-		{
-			$this->load->model('mitems');
-			$this->load->model('mtrans');
-			$this->load->model('mdepts');
-			$content['items'] = $this->mitems->get_all();
-			$content['trans'] = $this->mtrans->get_all();
-			$content['depts'] = $this->mdepts->get_all();
-			$data['content'] = $this->load->view('stock/v_daftar',$content,TRUE);
-	 		$this->load->view('tpl/v_master',$data);
+		else {
+			$data['content'] = $this->load->view('tpl/v_error_permission','',TRUE);
+			$this->load->view('tpl/v_master',$data);
 		}
 	}
 
